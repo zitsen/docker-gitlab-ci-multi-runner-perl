@@ -44,21 +44,27 @@ RUN apt-get install -y --no-install-recommends \
 RUN apt-get install -y --no-install-recommends r-base
 
 # prepare perlbrew path
-RUN mkdir -p /usr/local/perlbrew
-ENV PERLBREW_ROOT /usr/local/perlbrew
+RUN mkdir -p ${GITLAB_CI_MULTI_RUNNER_HOME_DIR}/perl5/perlbrew
+ENV PERLBREW_ROOT ${GITLAB_CI_MULTI_RUNNER_HOME_DIR}/perl5/perlbrew
+ENV PERLBREW_HOME ${GITLAB_CI_MULTI_RUNNER_HOME_DIR}/.perlbrew
 
 # install perlbrew
-RUN curl -L http://install.perlbrew.pl | bash
+RUN cpan App::perlbrew
+RUN chown -R ${GITLAB_CI_MULTI_RUNNER_USER}:${GITLAB_CI_MULTI_RUNNER_USER} ${GITLAB_CI_MULTI_RUNNER_HOME_DIR}
+RUN sudo -u $GITLAB_CI_MULTI_RUNNER_USER -H perlbrew init
 
-ENV PATH /usr/local/perlbrew/bin:$PATH
-ENV PERLBREW_PATH /usr/local/perlbrew/bin
-RUN cp /usr/local/perlbrew/etc/bashrc /etc/profile.d/perlbrew.sh
+ENV PATH $PERLBREW_ROOT/bin:$PATH
+ENV PERLBREW_PATH $PERLBREW_ROOT/bin
+RUN echo "source $PERLBREW_ROOT/etc/bashrc" >> ${GITLAB_CI_MULTI_RUNNER_HOME_DIR}/.profile
+RUN echo source $PERLBREW_ROOT/etc/bashrc | bash
+RUN export
 
-RUN echo source /usr/local/perlbrew/etc/bashrc | bash
-RUN perlbrew install -j4 -nv perl-5.20.2 perl.5.10.1
-RUN perlbrew install-cpanm
+RUN sudo -u $GITLAB_CI_MULTI_RUNNER_USER -H perlbrew install -j4 -nv perl-5.20.2
+RUN sudo -u $GITLAB_CI_MULTI_RUNNER_USER -H perlbrew install-cpanm
 RUN perlbrew exec cpanm -nq Moo Moose
 RUN perlbrew exec cpanm -nq Dist::Zilla
+
+RUN chown -R ${GITLAB_CI_MULTI_RUNNER_USER}:${GITLAB_CI_MULTI_RUNNER_USER} ${GITLAB_CI_MULTI_RUNNER_HOME_DIR}
 
 RUN locale-gen en_US.UTF-8
 
